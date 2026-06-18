@@ -30,6 +30,8 @@ app.get('/', (req, res) => {
     .message-text { max-width: 80%; padding: 12px 16px; border-radius: 12px; word-wrap: break-word; white-space: pre-wrap; font-size: 14px; line-height: 1.4; }
     .message.user .message-text { background: #003d7a; color: white; }
     .message.bot .message-text { background: #e8e8e8; color: #333; }
+    .contact-button { display: inline-block; margin-top: 10px; padding: 10px 20px; background: #003d7a; color: white; text-decoration: none; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; }
+    .contact-button:hover { background: #002550; }
     #input-area { border-top: 1px solid #ddd; padding: 12px; background: white; }
     #input-form { display: flex; gap: 8px; }
     #input-form input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
@@ -62,13 +64,43 @@ app.get('/', (req, res) => {
     // Add initial message
     addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
 
+    function processMessage(text) {
+      // Remove the contact form URL from text
+      let cleanText = text.replace(/https:\\/\\/www\\.excaliburlegalsupport\\.com\\/contactus\\.html/g, '').trim();
+      
+      // Check if message contains contact form URL
+      const hasContactForm = text.includes('https://www.excaliburlegalsupport.com/contactus.html');
+      
+      return { cleanText, hasContactForm };
+    }
+
     function addMessage(text, sender) {
       const div = document.createElement('div');
       div.className = \`message \${sender}\`;
       const textDiv = document.createElement('div');
       textDiv.className = 'message-text';
-      textDiv.textContent = text;
-      div.appendChild(textDiv);
+      
+      if (sender === 'bot') {
+        const { cleanText, hasContactForm } = processMessage(text);
+        textDiv.textContent = cleanText;
+        div.appendChild(textDiv);
+        
+        // Add Contact Us button if URL was in response
+        if (hasContactForm) {
+          const buttonDiv = document.createElement('div');
+          const button = document.createElement('a');
+          button.className = 'contact-button';
+          button.href = 'https://www.excaliburlegalsupport.com/contactus.html';
+          button.target = '_blank';
+          button.textContent = 'Contact Us';
+          buttonDiv.appendChild(button);
+          div.appendChild(buttonDiv);
+        }
+      } else {
+        textDiv.textContent = text;
+        div.appendChild(textDiv);
+      }
+      
       messagesDiv.appendChild(div);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
@@ -135,10 +167,12 @@ app.post('/api/chat', async (req, res) => {
 IMPORTANT: Do not use markdown formatting like asterisks, bold text, or italics. Emojis are great and encouraged. Write in plain text with emojis but no asterisks.
 
 WHEN TO DIRECT TO CONTACT FORM:
-If someone asks about scheduling a consultation, needs more information, wants to discuss their case, or asks how to get started, provide this direct link to our contact form:
+If someone asks about scheduling a consultation, needs more information, wants to discuss their case, or asks how to get started, include this URL in your response:
 https://www.excaliburlegalsupport.com/contactus.html
 
-You can say something like: "Great! I'd recommend filling out our contact form so one of our investigators can reach out to you personally: https://www.excaliburlegalsupport.com/contactus.html"
+When you include this URL, a blue "Contact Us" button will automatically appear below your message in the chat.
+
+Example response: "That sounds like a case we can help with! To get started, please submit your information here: https://www.excaliburlegalsupport.com/contactus.html"
 
 EXCALIBUR SERVICES:
 - Cheating Spouse/Infidelity Investigations
@@ -166,9 +200,8 @@ Florida: 352-509-8900
 South Carolina: 803-806-7800
 Colorado: 719-208-4088
 New Mexico: 505-208-6400
-Contact Form: https://www.excaliburlegalsupport.com/contactus.html
 
-Be professional, empathetic, and knowledgeable. Use emojis to make responses friendly and engaging. When appropriate, direct people to our contact form for personalized assistance. Guide people toward scheduling free consultations.`,
+Be professional, empathetic, and knowledgeable. Use emojis to make responses friendly and engaging.`,
         messages: messages
       })
     });
