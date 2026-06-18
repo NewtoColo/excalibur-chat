@@ -27,7 +27,7 @@ app.get('/', (req, res) => {
     .message { display: flex; margin: 8px 0; }
     .message.user { justify-content: flex-end; }
     .message.bot { justify-content: flex-start; }
-    .message-text { max-width: 80%; padding: 12px 16px; border-radius: 12px; word-wrap: break-word; white-space: pre-wrap; font-size: 14px; line-height: 1.4; }
+    .message-text { max-width: 80%; padding: 12px 16px; border-radius: 12px; word-wrap: break-word; font-size: 14px; line-height: 1.4; }
     .message.user .message-text { background: #003d7a; color: white; }
     .message.bot .message-text { background: #e8e8e8; color: #333; }
     .contact-button { 
@@ -78,21 +78,6 @@ app.get('/', (req, res) => {
     // Add initial message
     addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
 
-    function processMessage(text) {
-      // Look for the [CONTACT_FORM] marker
-      const markerIndex = text.indexOf('[CONTACT_FORM]');
-      
-      if (markerIndex === -1) {
-        return { cleanText: text, hasContactForm: false };
-      }
-      
-      // Split text at the marker
-      let cleanText = text.substring(0, markerIndex) + text.substring(markerIndex + '[CONTACT_FORM]'.length);
-      cleanText = cleanText.trim();
-      
-      return { cleanText, hasContactForm: true };
-    }
-
     function addMessage(text, sender) {
       const div = document.createElement('div');
       div.className = \`message \${sender}\`;
@@ -100,25 +85,41 @@ app.get('/', (req, res) => {
       textDiv.className = 'message-text';
       
       if (sender === 'bot') {
-        const { cleanText, hasContactForm } = processMessage(text);
-        
-        // Create text content
-        const textContent = document.createTextNode(cleanText);
-        textDiv.appendChild(textContent);
-        
-        // Add Contact Us button if marker was found
-        if (hasContactForm) {
-          const lineBreak = document.createElement('br');
-          const lineBreak2 = document.createElement('br');
-          textDiv.appendChild(lineBreak);
-          textDiv.appendChild(lineBreak2);
+        // Check if text contains the marker
+        if (text.includes('CONTACT_HERE')) {
+          // Split at the marker
+          const parts = text.split('CONTACT_HERE');
+          const beforeText = parts[0].trim();
+          const afterText = parts.slice(1).join('CONTACT_HERE').trim();
           
+          // Add text before button
+          textDiv.textContent = beforeText;
+          
+          // Add line breaks
+          const br1 = document.createElement('br');
+          const br2 = document.createElement('br');
+          textDiv.appendChild(br1);
+          textDiv.appendChild(br2);
+          
+          // Add button
           const button = document.createElement('a');
           button.className = 'contact-button';
           button.href = 'https://www.excaliburlegalsupport.com/contactus.html';
           button.target = '_blank';
           button.textContent = 'Contact Us';
           textDiv.appendChild(button);
+          
+          // Add text after button if there is any
+          if (afterText) {
+            const br3 = document.createElement('br');
+            const br4 = document.createElement('br');
+            textDiv.appendChild(br3);
+            textDiv.appendChild(br4);
+            textDiv.appendChild(document.createTextNode(afterText));
+          }
+        } else {
+          // No button, just text
+          textDiv.textContent = text;
         }
       } else {
         textDiv.textContent = text;
@@ -191,12 +192,12 @@ app.post('/api/chat', async (req, res) => {
 IMPORTANT: Do not use markdown formatting like asterisks, bold text, or italics. Emojis are great and encouraged. Write in plain text with emojis but no asterisks.
 
 WHEN DIRECTING TO CONTACT FORM:
-When someone asks about scheduling, getting info, or how to get started, include [CONTACT_FORM] marker right where you want the Contact Us button to appear.
+Include the word CONTACT_HERE exactly where you want the button to appear.
 
 EXAMPLE:
-"Yes, absolutely! You can reach us by filling out our contact form right here: [CONTACT_FORM]"
+"Yes, absolutely! You can reach us by filling out our contact form right here: CONTACT_HERE"
 
-The [CONTACT_FORM] marker will be replaced with a button. Do not include the URL - just use the marker.
+The word CONTACT_HERE will be replaced with a Contact Us button. Use it only once per response.
 
 EXCALIBUR SERVICES:
 - Cheating Spouse/Infidelity Investigations
