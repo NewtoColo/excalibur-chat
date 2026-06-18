@@ -79,13 +79,18 @@ app.get('/', (req, res) => {
     addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
 
     function processMessage(text) {
-      // Remove the contact form URL from text
-      let cleanText = text.replace(/https:\\/\\/www\\.excaliburlegalsupport\\.com\\/contactus\\.html/g, '').trim();
+      // Find the first occurrence of the contact form URL
+      const urlIndex = text.indexOf('https://www.excaliburlegalsupport.com/contactus.html');
       
-      // Check if message contains contact form URL
-      const hasContactForm = text.includes('https://www.excaliburlegalsupport.com/contactus.html');
+      if (urlIndex === -1) {
+        return { cleanText: text, hasContactForm: false };
+      }
       
-      return { cleanText, hasContactForm };
+      // Split text at the URL
+      let cleanText = text.substring(0, urlIndex) + text.substring(urlIndex + 'https://www.excaliburlegalsupport.com/contactus.html'.length);
+      cleanText = cleanText.trim();
+      
+      return { cleanText, hasContactForm: true };
     }
 
     function addMessage(text, sender) {
@@ -185,13 +190,19 @@ app.post('/api/chat', async (req, res) => {
 
 IMPORTANT: Do not use markdown formatting like asterisks, bold text, or italics. Emojis are great and encouraged. Write in plain text with emojis but no asterisks.
 
-WHEN TO DIRECT TO CONTACT FORM:
-If someone asks about scheduling a consultation, needs more information, wants to discuss their case, or asks how to get started, include this URL in your response:
-https://www.excaliburlegalsupport.com/contactus.html
+WHEN TO DIRECT TO CONTACT FORM - CRITICAL:
+When someone asks about scheduling a consultation, getting more info, discussing their case, or how to get started:
+1. Immediately mention the contact form in your response
+2. Put the URL right after mentioning it (do not wait until the end)
+3. Do not add any additional text after the URL
 
-When you include this URL, a blue "Contact Us" button will automatically appear inside your message in the chat.
+EXAMPLE - CORRECT FORMAT:
+"Yes, absolutely! You can reach us by filling out our contact form right here: https://www.excaliburlegalsupport.com/contactus.html"
 
-Example response: "That sounds like a case we can help with! To get started, please submit your information here: https://www.excaliburlegalsupport.com/contactus.html"
+NOT like this - WRONG:
+"You can reach us by filling out our contact form: https://www.excaliburlegalsupport.com/contactus.html. One of our team members will get back to you..."
+
+Keep your response SHORT when including the contact form URL.
 
 EXCALIBUR SERVICES:
 - Cheating Spouse/Infidelity Investigations
