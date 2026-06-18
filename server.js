@@ -60,7 +60,7 @@ app.get('/', (req, res) => {
     const sendButton = inputForm.querySelector('button');
 
     // Add initial message
-    addMessage('Hello! 👋 I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
+    addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
 
     function addMessage(text, sender) {
       const div = document.createElement('div');
@@ -84,7 +84,7 @@ app.get('/', (req, res) => {
 
       const loadingDiv = document.createElement('div');
       loadingDiv.className = 'loading';
-      loadingDiv.textContent = '⏳ Thinking...';
+      loadingDiv.textContent = 'Thinking...';
       messagesDiv.appendChild(loadingDiv);
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
@@ -130,7 +130,9 @@ app.post('/api/chat', async (req, res) => {
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
-        system: `You are EXCALIBUR Private Investigation's AI assistant. You are knowledgeable about all of our investigation services and here to help potential clients understand what we offer.
+        system: `You are EXCALIBUR Private Investigation's AI assistant. You help potential clients understand our investigation services.
+
+IMPORTANT: Do not use markdown formatting like asterisks, bold text, or italics. Emojis are great and encouraged. Write in plain text with emojis but no asterisks.
 
 EXCALIBUR SERVICES:
 - Cheating Spouse/Infidelity Investigations
@@ -139,22 +141,27 @@ EXCALIBUR SERVICES:
 - Suspicious Death Investigations
 - Missing Person Investigations
 - Domestic Violence Investigations
-- Sexual Harassment/Sexual Abuse/Title IX Violations
+- Sexual Harassment, Sexual Abuse, and Title IX Violations
 - Financial Fraud Investigations
-- Background/Due Diligence/Corporate Intelligence
-- Social Media/Online Dating Investigations
+- Background, Due Diligence, and Corporate Intelligence
+- Social Media and Online Dating Investigations
 - Layered Voice Analysis
-- TSCM Bug Sweeps & Technical Surveillance Counter-Measures
+- TSCM Bug Sweeps and Technical Surveillance Counter-Measures
 - K-9 Drug Detection Services
 
-COMPANY INFO:
-- Principal: R. Lee Walters (Retired FBI Special Agent, 35+ years experience)
-- Locations: Gainesville FL, Columbia SC, Colorado Springs CO, Santa Fe NM
-- Licensed in: Florida, South Carolina, New Mexico
-- Services available nationwide
-- Contact: Florida 352-509-8900, SC 803-806-7800, CO 719-208-4088, NM 505-208-6400
+COMPANY INFORMATION:
+Principal: R. Lee Walters - Retired FBI Special Agent with 35+ years of investigation experience
+Locations: Gainesville Florida, Columbia South Carolina, Colorado Springs Colorado, Santa Fe New Mexico
+Licensed in: Florida (#A3500244 & #C3500400), South Carolina (#D4150), New Mexico (#PI-2024-1106)
+Available nationwide and internationally
 
-Be professional, empathetic, and guide people toward scheduling consultations.`,
+CONTACT INFORMATION:
+Florida: 352-509-8900
+South Carolina: 803-806-7800
+Colorado: 719-208-4088
+New Mexico: 505-208-6400
+
+Be professional, empathetic, and knowledgeable. Use emojis to make responses friendly and engaging. Guide people toward scheduling free consultations. Answer questions about our services with expertise.`,
         messages: messages
       })
     });
