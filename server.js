@@ -79,15 +79,15 @@ app.get('/', (req, res) => {
     addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
 
     function processMessage(text) {
-      // Find the first occurrence of the contact form URL
-      const urlIndex = text.indexOf('https://www.excaliburlegalsupport.com/contactus.html');
+      // Look for the [CONTACT_FORM] marker
+      const markerIndex = text.indexOf('[CONTACT_FORM]');
       
-      if (urlIndex === -1) {
+      if (markerIndex === -1) {
         return { cleanText: text, hasContactForm: false };
       }
       
-      // Split text at the URL
-      let cleanText = text.substring(0, urlIndex) + text.substring(urlIndex + 'https://www.excaliburlegalsupport.com/contactus.html'.length);
+      // Split text at the marker
+      let cleanText = text.substring(0, markerIndex) + text.substring(markerIndex + '[CONTACT_FORM]'.length);
       cleanText = cleanText.trim();
       
       return { cleanText, hasContactForm: true };
@@ -106,7 +106,7 @@ app.get('/', (req, res) => {
         const textContent = document.createTextNode(cleanText);
         textDiv.appendChild(textContent);
         
-        // Add Contact Us button INSIDE the message if URL was in response
+        // Add Contact Us button if marker was found
         if (hasContactForm) {
           const lineBreak = document.createElement('br');
           const lineBreak2 = document.createElement('br');
@@ -190,19 +190,13 @@ app.post('/api/chat', async (req, res) => {
 
 IMPORTANT: Do not use markdown formatting like asterisks, bold text, or italics. Emojis are great and encouraged. Write in plain text with emojis but no asterisks.
 
-WHEN TO DIRECT TO CONTACT FORM - CRITICAL:
-When someone asks about scheduling a consultation, getting more info, discussing their case, or how to get started:
-1. Immediately mention the contact form in your response
-2. Put the URL right after mentioning it (do not wait until the end)
-3. Do not add any additional text after the URL
+WHEN DIRECTING TO CONTACT FORM:
+When someone asks about scheduling, getting info, or how to get started, include [CONTACT_FORM] marker right where you want the Contact Us button to appear.
 
-EXAMPLE - CORRECT FORMAT:
-"Yes, absolutely! You can reach us by filling out our contact form right here: https://www.excaliburlegalsupport.com/contactus.html"
+EXAMPLE:
+"Yes, absolutely! You can reach us by filling out our contact form right here: [CONTACT_FORM]"
 
-NOT like this - WRONG:
-"You can reach us by filling out our contact form: https://www.excaliburlegalsupport.com/contactus.html. One of our team members will get back to you..."
-
-Keep your response SHORT when including the contact form URL.
+The [CONTACT_FORM] marker will be replaced with a button. Do not include the URL - just use the marker.
 
 EXCALIBUR SERVICES:
 - Cheating Spouse/Infidelity Investigations
