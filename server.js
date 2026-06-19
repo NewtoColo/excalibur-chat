@@ -10,10 +10,10 @@ app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1517584581233213440/cYYz7YFcdIE9Sj03OGi5uWv9W0JMfD8KDyFDanhJRmESVkPoLdslygtmxwESPIX38ur4';
 
-async function sendDiscordNotification(ip, timestamp) {
+async function sendDiscordNotification(ip, city, state, timestamp) {
   try {
     const message = {
-      content: `🌐 **New Website Visitor**\n🔗 **IP:** ${ip}\n⏰ **Time:** ${timestamp}`
+      content: `🌍 **New Website Visitor**\n📍 **Location:** ${city}, ${state}\n🔗 **IP:** ${ip}\n⏰ **Time:** ${timestamp}`
     };
     await fetch(DISCORD_WEBHOOK_URL, {
       method: 'POST',
@@ -22,6 +22,24 @@ async function sendDiscordNotification(ip, timestamp) {
     });
   } catch (error) {
     console.error('Discord error:', error.message);
+  }
+}
+
+async function getGeolocation(ip) {
+  try {
+    const response = await fetch(`https://get.geojs.io/geolocation/v1/cities?ip=${ip}`);
+    const data = await response.json();
+    
+    if (data && data.city) {
+      return {
+        city: data.city || 'Unknown',
+        state: data.region || 'Unknown'
+      };
+    }
+    return { city: 'Unknown', state: 'Unknown' };
+  } catch (error) {
+    console.log('Geolocation error:', error.message);
+    return { city: 'Unknown', state: 'Unknown' };
   }
 }
 
@@ -34,14 +52,16 @@ app.use(async (req, res, next) => {
     
     if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
 
+    const { city, state } = await getGeolocation(ip);
+
     const timestamp = new Date().toLocaleString('en-US', { 
       timeZone: 'America/Chicago',
       year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
     
-    console.log(`Visitor: ${ip}`);
-    await sendDiscordNotification(ip, timestamp);
+    console.log(`Visitor: ${ip} - ${city}, ${state}`);
+    await sendDiscordNotification(ip, city, state, timestamp);
   } catch (error) {
     console.error('Visitor tracking error:', error.message);
   }
