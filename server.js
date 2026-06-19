@@ -140,3 +140,111 @@ app.get('/', (req, res) => {
       sendButton.disabled = true;
 
       const loadingDiv = document.createElement('div');
+      loadingDiv.className = 'loading';
+      loadingDiv.textContent = 'Thinking...';
+      messagesDiv.appendChild(loadingDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ role: 'user', content: text }] })
+        });
+
+        const data = await response.json();
+        loadingDiv.remove();
+
+        if (data.content && data.content[0]) {
+          addMessage(data.content[0].text, 'bot');
+        } else {
+          addMessage('Sorry, I encountered an error. Please try again.', 'bot');
+        }
+      } catch (error) {
+        loadingDiv.remove();
+        addMessage('Error connecting to server. Please try again.', 'bot');
+      }
+
+      sendButton.disabled = false;
+    });
+  </script>
+</body>
+</html>`);
+});
+
+// API ENDPOINT
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { messages } = req.body;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.CLAUDE_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: `You are EXCALIBUR Private Investigation's AI assistant. You help potential clients understand our investigation services.
+
+IMPORTANT: Do not use markdown formatting like asterisks, bold text, or italics. Emojis are great and encouraged. Write in plain text with emojis but no asterisks.
+
+RESPONSE STYLE:
+Keep answers concise and conversational. Use clear, short sentences with one main idea each. Break up long thoughts into separate sentences. Be direct and friendly. Avoid run-on sentences. Aim for 3-5 sentences that provide helpful detail without being overwhelming.
+
+WHEN DIRECTING TO CONTACT FORM:
+Include the word CONTACT_HERE exactly where you want the button to appear.
+
+EXCALIBUR SERVICES:
+- Cheating Spouse/Infidelity Investigations
+- Child Custody Investigations
+- Surveillance Operations
+- Suspicious Death Investigations
+- Missing Person Investigations
+- Domestic Violence Investigations
+- Sexual Harassment, Sexual Abuse, and Title IX Violations
+- Financial Fraud Investigations
+- Background, Due Diligence, and Corporate Intelligence
+- Social Media and Online Dating Investigations
+- Layered Voice Analysis
+- TSCM Bug Sweeps and Technical Surveillance Counter-Measures
+- K-9 Drug Detection Services
+
+COMPANY INFORMATION:
+Principal: R. Lee Walters - Retired FBI Special Agent with 35+ years of investigation experience
+Locations: Gainesville Florida, Columbia South Carolina, Colorado Springs Colorado, Santa Fe New Mexico
+Licensed in: Florida (#A3500244 & #C3500400), South Carolina (#D4150), New Mexico (#PI-2024-1106)
+Available nationwide and internationally
+
+CONTACT INFORMATION - ALWAYS INCLUDE IN RELEVANT RESPONSES:
+Florida: 352-509-8900
+South Carolina: 803-806-7800
+Colorado: 719-208-4088
+New Mexico: 505-208-6400
+
+IMPORTANT: When someone asks how to reach you, about getting started, scheduling a consultation, or for contact info, ALWAYS include:
+1. The phone number(s) for the state(s) they mention or list all locations
+2. A mention of the states you serve (Florida, South Carolina, Colorado, New Mexico)
+3. Then offer the contact form with CONTACT_HERE
+
+Example: "We operate in Florida, South Carolina, Colorado, and New Mexico. You can call us directly or fill out our contact form here: CONTACT_HERE"
+
+Be professional, empathetic, and knowledgeable. Use emojis to make responses friendly and engaging.`,
+        messages: messages
+      })
+    });
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`EXCALIBUR Chat Server running on port ${PORT}`);
+});
