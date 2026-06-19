@@ -8,6 +8,72 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
+// Discord Webhook URL
+const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1517584581233213440/cYYz7YFcdIE9Sj03OGi5uWv9W0JMfD8KDyFDanhJRmESVkPoLdslygtmxwESPIX38ur4';
+
+// Function to send Discord notification
+async function sendDiscordNotification(ip, city, state, timestamp) {
+  try {
+    const message = {
+      content: `🌍 **New Website Visitor**\n📍 **Location:** ${city}, ${state}\n🔗 **IP:** ${ip}\n⏰ **Time:** ${timestamp}`
+    };
+
+    await fetch(DISCORD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(message)
+    });
+  } catch (error) {
+    console.error('Discord notification error:', error);
+  }
+}
+
+// Function to get geolocation from IP
+async function getGeolocation(ip) {
+  try {
+    const response = await fetch(`https://ip-api.com/json/${ip}?fields=city,regionName,status`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      return {
+        city: data.city || 'Unknown',
+        state: data.regionName || 'Unknown'
+      };
+    }
+    return { city: 'Unknown', state: 'Unknown' };
+  } catch (error) {
+    console.error('Geolocation error:', error);
+    return { city: 'Unknown', state: 'Unknown' };
+  }
+}
+
+// Middleware to track visitors
+app.use(async (req, res, next) => {
+  // Get client IP
+  let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+  if (ip.includes(',')) {
+    ip = ip.split(',')[0].trim();
+  }
+
+  // Get geolocation
+  const { city, state } = await getGeolocation(ip);
+  
+  // Send Discord notification
+  const timestamp = new Date().toLocaleString('en-US', { 
+    timeZone: 'America/Chicago',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+  
+  await sendDiscordNotification(ip, city, state, timestamp);
+  
+  next();
+});
+
 // ROOT ROUTE - Simple HTML Chat
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
