@@ -31,28 +31,55 @@ async function sendDiscordNotification(ip, city, state, timestamp) {
 // Function to get geolocation from IP
 async function getGeolocation(ip) {
   try {
-    const response = await fetch(`https://ip-api.com/json/${ip}?fields=city,regionName,status`);
+    // Try ipwhois.io API (more reliable)
+    const response = await fetch(`https://ipwhois.io/json/?ip=${ip}`, {
+      timeout: 5000
+    });
+    
+    if (!response.ok) throw new Error('API error');
+    
     const data = await response.json();
     
-    if (data.status === 'success') {
+    if (data.success === true) {
       return {
         city: data.city || 'Unknown',
-        state: data.regionName || 'Unknown'
+        state: data.region || 'Unknown'
       };
     }
+    
     return { city: 'Unknown', state: 'Unknown' };
   } catch (error) {
     console.error('Geolocation error:', error);
-    return { city: 'Unknown', state: 'Unknown' };
+    // Fallback: try another API
+    try {
+      const response = await fetch(`https://ipapi.co/${ip}/json/`);
+      const data = await response.json();
+      return {
+        city: data.city || 'Unknown',
+        state: data.region || 'Unknown'
+      };
+    } catch (fallbackError) {
+      console.error('Fallback geolocation error:', fallbackError);
+      return { city: 'Unknown', state: 'Unknown' };
+    }
   }
 }
 
 // Middleware to track visitors
 app.use(async (req, res, next) => {
-  // Get client IP
-  let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-  if (ip.includes(',')) {
+  // Get client IP - handle proxies properly
+  let ip = req.headers['cf-connecting-ip'] || // Cloudflare
+           req.headers['x-forwarded-for'] || // Proxy
+           req.headers['x-real-ip'] || // Nginx
+           req.connection.remoteAddress || 
+           req.socket.remoteAddress;
+  
+  // Clean up IP
+  if (ip && ip.includes(',')) {
     ip = ip.split(',')[0].trim();
+  }
+  if (ip && ip.includes(':')) {
+    ip = ip.split(':').pop();
   }
 
   // Get geolocation
@@ -69,6 +96,7 @@ app.use(async (req, res, next) => {
     second: '2-digit'
   });
   
+  console.log(`Visitor: ${ip} - ${city}, ${state}`);
   await sendDiscordNotification(ip, city, state, timestamp);
   
   next();
