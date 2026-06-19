@@ -24,30 +24,24 @@ async function sendDiscordNotification(ip, city, state, timestamp) {
       body: JSON.stringify(message)
     });
   } catch (error) {
-    console.error('Discord notification error:', error);
+    console.error('Discord error:', error.message);
   }
 }
 
-// Function to get geolocation from IP - SIMPLIFIED
+// Function to get geolocation from IP
 async function getGeolocation(ip) {
   try {
-    // Use a single, reliable API with short timeout
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000);
-    
-    const response = await fetch(`https://ipapi.co/${ip}/json/`, {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeout);
-    
-    if (!response.ok) throw new Error('API error');
-    
+    // Use geoip-db.com - very reliable and free
+    const response = await fetch(`https://geoip-db.com/json/${ip}`);
     const data = await response.json();
-    return {
-      city: data.city || 'Unknown',
-      state: data.region || 'Unknown'
-    };
+    
+    if (data && data.city) {
+      return {
+        city: data.city || 'Unknown',
+        state: data.state || 'Unknown'
+      };
+    }
+    return { city: 'Unknown', state: 'Unknown' };
   } catch (error) {
     console.error('Geolocation error:', error.message);
     return { city: 'Unknown', state: 'Unknown' };
@@ -61,17 +55,17 @@ app.use(async (req, res, next) => {
     let ip = req.headers['cf-connecting-ip'] ||
              req.headers['x-forwarded-for'] ||
              req.headers['x-real-ip'] ||
-             req.connection.remoteAddress || 
-             req.socket.remoteAddress;
+             req.socket.remoteAddress ||
+             'Unknown';
     
     if (ip && ip.includes(',')) {
       ip = ip.split(',')[0].trim();
     }
-    if (ip && ip.includes(':')) {
-      ip = ip.split(':').pop();
+    if (ip && ip.includes('::')) {
+      ip = ip.split('::').pop();
     }
 
-    // Get geolocation from IP
+    // Get geolocation
     const { city, state } = await getGeolocation(ip);
     
     // Send Discord notification
@@ -88,13 +82,13 @@ app.use(async (req, res, next) => {
     console.log(`Visitor: ${ip} - ${city}, ${state}`);
     await sendDiscordNotification(ip, city, state, timestamp);
   } catch (error) {
-    console.error('Middleware error:', error);
+    console.error('Visitor tracking error:', error.message);
   }
   
   next();
 });
 
-// ROOT ROUTE - Simple HTML Chat
+// ROOT ROUTE
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html>
@@ -129,9 +123,7 @@ app.get('/', (req, res) => {
       border: none;
       font-size: 14px;
     }
-    .contact-button:hover { 
-      background: #002550; 
-    }
+    .contact-button:hover { background: #002550; }
     #input-area { border-top: 1px solid #ddd; padding: 12px; background: white; }
     #input-form { display: flex; gap: 8px; }
     #input-form input { flex: 1; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
@@ -176,7 +168,6 @@ app.get('/', (req, res) => {
           const afterText = parts.slice(1).join('CONTACT_HERE').trim();
           
           textDiv.textContent = beforeText;
-          
           const br1 = document.createElement('br');
           const br2 = document.createElement('br');
           textDiv.appendChild(br1);
