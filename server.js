@@ -8,16 +8,13 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-// Discord Webhook URL
 const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1517584581233213440/cYYz7YFcdIE9Sj03OGi5uWv9W0JMfD8KDyFDanhJRmESVkPoLdslygtmxwESPIX38ur4';
 
-// Function to send Discord notification
-async function sendDiscordNotification(ip, city, state, timestamp) {
+async function sendDiscordNotification(ip, timestamp) {
   try {
     const message = {
-      content: `🌍 **New Website Visitor**\n📍 **Location:** ${city}, ${state}\n🔗 **IP:** ${ip}\n⏰ **Time:** ${timestamp}`
+      content: `🌐 **New Website Visitor**\n🔗 **IP:** ${ip}\n⏰ **Time:** ${timestamp}`
     };
-
     await fetch(DISCORD_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -28,67 +25,29 @@ async function sendDiscordNotification(ip, city, state, timestamp) {
   }
 }
 
-// Function to get geolocation from IP
-async function getGeolocation(ip) {
-  try {
-    // Use geoip-db.com - very reliable and free
-    const response = await fetch(`https://geoip-db.com/json/${ip}`);
-    const data = await response.json();
-    
-    if (data && data.city) {
-      return {
-        city: data.city || 'Unknown',
-        state: data.state || 'Unknown'
-      };
-    }
-    return { city: 'Unknown', state: 'Unknown' };
-  } catch (error) {
-    console.error('Geolocation error:', error.message);
-    return { city: 'Unknown', state: 'Unknown' };
-  }
-}
-
-// Middleware to track visitors
 app.use(async (req, res, next) => {
   try {
-    // Get client IP
     let ip = req.headers['cf-connecting-ip'] ||
              req.headers['x-forwarded-for'] ||
              req.headers['x-real-ip'] ||
-             req.socket.remoteAddress ||
-             'Unknown';
+             req.socket.remoteAddress || 'Unknown';
     
-    if (ip && ip.includes(',')) {
-      ip = ip.split(',')[0].trim();
-    }
-    if (ip && ip.includes('::')) {
-      ip = ip.split('::').pop();
-    }
+    if (ip && ip.includes(',')) ip = ip.split(',')[0].trim();
 
-    // Get geolocation
-    const { city, state } = await getGeolocation(ip);
-    
-    // Send Discord notification
     const timestamp = new Date().toLocaleString('en-US', { 
       timeZone: 'America/Chicago',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
     
-    console.log(`Visitor: ${ip} - ${city}, ${state}`);
-    await sendDiscordNotification(ip, city, state, timestamp);
+    console.log(`Visitor: ${ip}`);
+    await sendDiscordNotification(ip, timestamp);
   } catch (error) {
     console.error('Visitor tracking error:', error.message);
   }
-  
   next();
 });
 
-// ROOT ROUTE
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html>
@@ -111,17 +70,8 @@ app.get('/', (req, res) => {
     .message.user .message-text { background: #003d7a; color: white; }
     .message.bot .message-text { background: #e8e8e8; color: #333; }
     .contact-button { 
-      display: inline-block; 
-      margin-top: 12px; 
-      padding: 12px 24px; 
-      background: #003d7a; 
-      color: white; 
-      text-decoration: none; 
-      border-radius: 6px; 
-      font-weight: 600; 
-      cursor: pointer; 
-      border: none;
-      font-size: 14px;
+      display: inline-block; margin-top: 12px; padding: 12px 24px; background: #003d7a; color: white; 
+      text-decoration: none; border-radius: 6px; font-weight: 600; cursor: pointer; border: none; font-size: 14px;
     }
     .contact-button:hover { background: #002550; }
     #input-area { border-top: 1px solid #ddd; padding: 12px; background: white; }
@@ -241,7 +191,6 @@ app.get('/', (req, res) => {
 </html>`);
 });
 
-// API ENDPOINT
 app.post('/api/chat', async (req, res) => {
   try {
     const { messages } = req.body;
