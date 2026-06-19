@@ -28,73 +28,68 @@ async function sendDiscordNotification(ip, city, state, timestamp) {
   }
 }
 
-// Function to get geolocation from IP
+// Function to get geolocation from IP - SIMPLIFIED
 async function getGeolocation(ip) {
   try {
-    const response = await fetch(`https://ipwhois.io/json/?ip=${ip}`, {
-      timeout: 5000
+    // Use a single, reliable API with short timeout
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+    
+    const response = await fetch(`https://ipapi.co/${ip}/json/`, {
+      signal: controller.signal
     });
+    
+    clearTimeout(timeout);
     
     if (!response.ok) throw new Error('API error');
     
     const data = await response.json();
-    
-    if (data.success === true) {
-      return {
-        city: data.city || 'Unknown',
-        state: data.region || 'Unknown'
-      };
-    }
-    
-    return { city: 'Unknown', state: 'Unknown' };
+    return {
+      city: data.city || 'Unknown',
+      state: data.region || 'Unknown'
+    };
   } catch (error) {
-    console.error('Geolocation error:', error);
-    try {
-      const response = await fetch(`https://ipapi.co/${ip}/json/`);
-      const data = await response.json();
-      return {
-        city: data.city || 'Unknown',
-        state: data.region || 'Unknown'
-      };
-    } catch (fallbackError) {
-      console.error('Fallback geolocation error:', fallbackError);
-      return { city: 'Unknown', state: 'Unknown' };
-    }
+    console.error('Geolocation error:', error.message);
+    return { city: 'Unknown', state: 'Unknown' };
   }
 }
 
 // Middleware to track visitors
 app.use(async (req, res, next) => {
-  // Get client IP
-  let ip = req.headers['cf-connecting-ip'] ||
-           req.headers['x-forwarded-for'] ||
-           req.headers['x-real-ip'] ||
-           req.connection.remoteAddress || 
-           req.socket.remoteAddress;
-  
-  if (ip && ip.includes(',')) {
-    ip = ip.split(',')[0].trim();
-  }
-  if (ip && ip.includes(':')) {
-    ip = ip.split(':').pop();
-  }
+  try {
+    // Get client IP
+    let ip = req.headers['cf-connecting-ip'] ||
+             req.headers['x-forwarded-for'] ||
+             req.headers['x-real-ip'] ||
+             req.connection.remoteAddress || 
+             req.socket.remoteAddress;
+    
+    if (ip && ip.includes(',')) {
+      ip = ip.split(',')[0].trim();
+    }
+    if (ip && ip.includes(':')) {
+      ip = ip.split(':').pop();
+    }
 
-  // Get geolocation from IP
-  const { city, state } = await getGeolocation(ip);
-  
-  // Send Discord notification
-  const timestamp = new Date().toLocaleString('en-US', { 
-    timeZone: 'America/Chicago',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-  
-  console.log(`Visitor: ${ip} - ${city}, ${state}`);
-  await sendDiscordNotification(ip, city, state, timestamp);
+    // Get geolocation from IP
+    const { city, state } = await getGeolocation(ip);
+    
+    // Send Discord notification
+    const timestamp = new Date().toLocaleString('en-US', { 
+      timeZone: 'America/Chicago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+    
+    console.log(`Visitor: ${ip} - ${city}, ${state}`);
+    await sendDiscordNotification(ip, city, state, timestamp);
+  } catch (error) {
+    console.error('Middleware error:', error);
+  }
   
   next();
 });
@@ -166,7 +161,6 @@ app.get('/', (req, res) => {
     const messageInput = document.getElementById('message-input');
     const sendButton = inputForm.querySelector('button');
 
-    // Add initial message
     addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
 
     function addMessage(text, sender) {
@@ -176,23 +170,18 @@ app.get('/', (req, res) => {
       textDiv.className = 'message-text';
       
       if (sender === 'bot') {
-        // Check if text contains the marker
         if (text.includes('CONTACT_HERE')) {
-          // Split at the marker
           const parts = text.split('CONTACT_HERE');
           const beforeText = parts[0].trim();
           const afterText = parts.slice(1).join('CONTACT_HERE').trim();
           
-          // Add text before button
           textDiv.textContent = beforeText;
           
-          // Add line breaks
           const br1 = document.createElement('br');
           const br2 = document.createElement('br');
           textDiv.appendChild(br1);
           textDiv.appendChild(br2);
           
-          // Add button
           const button = document.createElement('a');
           button.className = 'contact-button';
           button.href = 'https://www.excaliburlegalsupport.com/contactus.html';
@@ -200,7 +189,6 @@ app.get('/', (req, res) => {
           button.textContent = 'Contact Us';
           textDiv.appendChild(button);
           
-          // Add text after button if there is any
           if (afterText) {
             const br3 = document.createElement('br');
             const br4 = document.createElement('br');
@@ -209,7 +197,6 @@ app.get('/', (req, res) => {
             textDiv.appendChild(document.createTextNode(afterText));
           }
         } else {
-          // No button, just text
           textDiv.textContent = text;
         }
       } else {
