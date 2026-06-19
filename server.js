@@ -28,24 +28,6 @@ async function sendDiscordNotification(ip, city, state, timestamp) {
   }
 }
 
-// Function to get geolocation from coordinates (mobile GPS)
-async function getLocationFromCoordinates(latitude, longitude) {
-  try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`
-    );
-    const data = await response.json();
-    
-    let city = data.address?.city || data.address?.town || data.address?.county || 'Unknown';
-    let state = data.address?.state || 'Unknown';
-    
-    return { city, state };
-  } catch (error) {
-    console.error('Coordinate geolocation error:', error);
-    return { city: 'Unknown', state: 'Unknown' };
-  }
-}
-
 // Function to get geolocation from IP
 async function getGeolocation(ip) {
   try {
@@ -117,44 +99,6 @@ app.use(async (req, res, next) => {
   next();
 });
 
-// ENDPOINT FOR GPS LOCATION (mobile)
-app.post('/api/location', async (req, res) => {
-  try {
-    const { latitude, longitude } = req.body;
-    
-    let ip = req.headers['cf-connecting-ip'] ||
-             req.headers['x-forwarded-for'] ||
-             req.headers['x-real-ip'] ||
-             req.connection.remoteAddress;
-    
-    if (ip && ip.includes(',')) {
-      ip = ip.split(',')[0].trim();
-    }
-
-    // Get location from GPS coordinates
-    const { city, state } = await getLocationFromCoordinates(latitude, longitude);
-    
-    // Send Discord notification with GPS location
-    const timestamp = new Date().toLocaleString('en-US', { 
-      timeZone: 'America/Chicago',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    });
-    
-    console.log(`Mobile Visitor GPS: ${latitude}, ${longitude} - ${city}, ${state}`);
-    await sendDiscordNotification(ip, city, state, timestamp);
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Location API error:', error);
-    res.status(500).json({ error: 'Location error' });
-  }
-});
-
 // ROOT ROUTE - Simple HTML Chat
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
@@ -221,33 +165,6 @@ app.get('/', (req, res) => {
     const inputForm = document.getElementById('input-form');
     const messageInput = document.getElementById('message-input');
     const sendButton = inputForm.querySelector('button');
-
-    // Request GPS location on mobile
-    function requestGPSLocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            // Send GPS coordinates to server
-            try {
-              await fetch('/api/location', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ latitude, longitude })
-              });
-            } catch (error) {
-              console.log('Location sent to server');
-            }
-          },
-          (error) => {
-            console.log('Location permission denied or unavailable');
-          }
-        );
-      }
-    }
-
-    // Request GPS on load
-    setTimeout(requestGPSLocation, 1000);
 
     // Add initial message
     addMessage('Hello! I\\'m EXCALIBUR\\'s AI Assistant. I can help answer questions about our private investigation services. What would you like to know?', 'bot');
