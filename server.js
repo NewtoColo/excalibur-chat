@@ -8,9 +8,13 @@ app.use(cors());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ limit: '10mb', extended: true }));
 
-const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1517584581233213440/cYYz7YFcdIE9Sj03OGi5uWv9W0JMfD8KDyFDanhJRmESVkPoLdslygtmxwESPIX38ur4';
+const DISCORD_WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
 async function sendToDiscord(ip, timestamp) {
+  if (!DISCORD_WEBHOOK_URL) {
+    console.error('DISCORD_WEBHOOK_URL is not set — skipping Discord notification');
+    return;
+  }
   try {
     await fetch(DISCORD_WEBHOOK_URL, {
       method: 'POST',
@@ -71,5 +75,5 @@ Principal: R. Lee Walters, Retired FBI Special Agent, 35+ years experience.`,
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`EXCALIBUR Chat Server running on port 10000`);
+  console.log(`EXCALIBUR Chat Server running on port ${PORT}`);
 });
